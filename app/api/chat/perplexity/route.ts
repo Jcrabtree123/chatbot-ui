@@ -1,51 +1,16 @@
-import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
-import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
-import OpenAI from "openai"
+export async function POST(req: Request): Promise<Response> {
+  const body = await req.json();
+  const question = body.messages?.[body.messages.length - 1]?.content;
 
-export const runtime = "edge"
+  const res = await fetch("https://equanax.app.n8n.cloud/webhook/chat/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
 
-export async function POST(request: Request) {
-  const json = await request.json()
-  const { chatSettings, messages } = json as {
-    chatSettings: ChatSettings
-    messages: any[]
-  }
+  const data = await res.json();
 
-  try {
-    const profile = await getServerProfile()
-
-    checkApiKey(profile.perplexity_api_key, "Perplexity")
-
-    // Perplexity is compatible the OpenAI SDK
-    const perplexity = new OpenAI({
-      apiKey: profile.perplexity_api_key || "",
-      baseURL: "https://api.perplexity.ai/"
-    })
-
-    const response = await perplexity.chat.completions.create({
-      model: chatSettings.model,
-      messages,
-      stream: true
-    })
-
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
-  } catch (error: any) {
-    let errorMessage = error.message || "An unexpected error occurred"
-    const errorCode = error.status || 500
-
-    if (errorMessage.toLowerCase().includes("api key not found")) {
-      errorMessage =
-        "Perplexity API Key not found. Please set it in your profile settings."
-    } else if (errorCode === 401) {
-      errorMessage =
-        "Perplexity API Key is incorrect. Please fix it in your profile settings."
-    }
-
-    return new Response(JSON.stringify({ message: errorMessage }), {
-      status: errorCode
-    })
-  }
+  return Response.json({
+    answer: data.answer || "No response from n8n.",
+  });
 }
