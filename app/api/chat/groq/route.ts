@@ -1,23 +1,16 @@
-import { NextResponse } from "next/server";
-
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const body = await req.json();
+  const question = body.messages?.[body.messages.length - 1]?.content;
 
-  const response = await fetch("https://equanax.app.n8n.cloud/webhook/chat/ask", {
+  const res = await fetch("https://equanax.app.n8n.cloud/webhook/chat/ask", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: body.messages[body.messages.length - 1].content
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
   });
 
-  const data = await response.json();
+  const data = await res.json();
 
-  return NextResponse.json({
-    id: Date.now().toString(),
-    role: "assistant",
-    content: data.text || "No response"
+  return Response.json({
+    answer: data.answer || "No response from n8n.",
   });
 }
