@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server";
+// /app/api/n8n/route.ts
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const body = await req.json();
-  console.log("✅ Incoming request hit N8N route", JSON.stringify(body));
+  const question = body?.messages?.[body.messages.length - 1]?.content;
 
-  return NextResponse.json({
-    debug: "You’re hitting the Vercel n8n route.",
-    message: body.messages?.[body.messages.length - 1]?.content || "No message",
+  const res = await fetch('https://equanax.app.n8n.cloud/webhook/chat/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question })
+  });
+
+  const data = await res.json();
+
+  return Response.json({
+    answer: data.answer || 'No response from n8n.'
   });
 }
